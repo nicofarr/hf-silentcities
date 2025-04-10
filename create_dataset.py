@@ -33,28 +33,29 @@ def add_sitedata(row):
 ds = Dataset.from_pandas(pd.read_csv(os.path.join(args.metadata,f"partID{args.site}.csv.gz")))
 
 ### List all the tar.xz archives in the base dataset folder
-archives = [f for f in os.listdir(os.path.join(args.folder,args.site)) if f.endswith(".tar.xz")]
+archives = [f for f in os.listdir(os.path.join(args.folder)) if f.endswith(".tar.gz") and f.startswith(f"partID{args.site}")]
+print(f"Archives found: {archives}")
 
 ### for each archive, extract it in the base dataset folder
 for archive in archives:
     print(f"Uncompressing archive name {archive}")
-    os.system(f"tar -xvf {os.path.join(args.folder,args.site,archive)} -C {os.path.join(args.folder,args.site)}")
+    os.system(f"tar -xvf {os.path.join(args.folder,archive)} -C {os.path.join(args.folder,args.site)}")
 
     ## List all flac files corresponding to this archive
-    allflacfiles = [f for f in os.listdir(os.path.join(args.folder,args.site)) if f.endswith(".flac")]
+    allflacfiles = [f for f in os.listdir(os.path.join(args.folder)) if f.endswith(".flac")]
 
     ## split the main dataset by keeping only the rows that include allflacfiles as the name column
     print(f"Filtering the main dataset")
     ds_sub = ds.filter(lambda x: x['name'] in allflacfiles)
 
-    fullpaths = [os.path.join(args.folder,args.site,f) for f in ds_sub['name']]
+    fullpaths = [os.path.join(args.folder,f) for f in ds_sub['name']]
 
     print(f"Creating audio dataset and merging with columns")
     audio_dataset = Dataset.from_dict({"audio": fullpaths}).cast_column("audio", Audio())
 
     ds_sub = ds_sub.add_column("audio", audio_dataset["audio"])
-    print(f"Saving parquet file {archive}.parquet")
-    ds_sub.to_parquet(os.path.join(f"{archive}.parquet")) ### to check : parquet writer options pour la compression; eg snappy? 
+    #print(f"Saving parquet file {archive}.parquet")
+    #ds_sub.to_parquet(os.path.join(f"{archive}.parquet")) ### to check : parquet writer options pour la compression; eg snappy? 
     
     
     print("Pushing to hub...")
@@ -62,6 +63,6 @@ for archive in archives:
     print(ds_sub)
     print(f"Removing flac files from disk")
     for flacfile in allflacfiles:
-        os.remove(os.path.join(args.folder,args.site,flacfile))
+        os.remove(os.path.join(args.folder,flacfile))
 
     print(ds_sub.cleanup_cache_files())

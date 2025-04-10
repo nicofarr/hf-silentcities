@@ -38,7 +38,7 @@ print(f"Archives found: {archives}")
 
 ### for each archive, extract it in the base dataset folder
 for archive in archives:
-    print(f"Uncompressing archive name {archive}")
+    print(f"Uncompressing archive name {os.path.join(args.folder,archive)}")
     os.system(f"tar -xvf {os.path.join(args.folder,archive)} -C {os.path.join(args.folder,args.site)}")
 
     ## List all flac files corresponding to this archive
